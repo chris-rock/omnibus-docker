@@ -1,0 +1,40 @@
+FROM ubuntu:trusty
+ENV DEBIAN_FRONTEND noninteractive
+
+# update
+RUN apt-get update
+
+# install chef-dk
+RUN apt-get install -y apt-transport-https
+RUN apt-get install wget
+RUN wget -qO - https://downloads.chef.io/packages-chef-io-public.key | sudo apt-key add -
+
+ENV CHANNEL=stable
+ENV DISTRIBUTION=trusty
+
+RUN echo "deb https://packages.chef.io/$CHANNEL-apt $DISTRIBUTION main" > /etc/apt/sources.list.d/chef-$CHANNEL.list
+RUN apt-get update
+RUN apt-get install chefdk
+
+# install omnibus cookbook
+ADD builder /env
+RUN cd /env && chef-solo -c solo.rb -j solo.json
+RUN chef exec gem install omnibus
+
+# install omnibus software for dependencies
+RUN git clone https://github.com/chef/omnibus-software.git /tmp/omnibus-software
+RUN chef exec gem build /tmp/omnibus-software/*.gemspec
+RUN chef exec gem install omnibus-*.gem
+RUN rm -f *.gem
+
+RUN git config --global user.email "you@example.com"
+RUN git config --global user.name "Your Name"
+
+# prepare for omnibus build
+RUN chef exec gem install bundler
+RUN chmod +x /env/omni.sh
+
+VOLUME ["/project"]
+WORKDIR /project
+
+ENTRYPOINT ["/env/omni.sh"]

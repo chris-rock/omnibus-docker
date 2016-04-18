@@ -1,0 +1,37 @@
+FROM centos:7
+
+# update
+RUN yum -y update
+
+# install chef-dk
+RUN rpm --import https://downloads.chef.io/packages-chef-io-public.key
+ADD builder/chef.rpm.sh /chef.rpm.sh
+RUN chmod +x ./chef.rpm.sh
+RUN ./chef.rpm.sh
+RUN yum install -y chefdk
+
+# add epel for fakeroot package
+RUN rpm -ivh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm
+
+# install omnibus cookbook
+ADD builder /env
+RUN cd /env && chef-solo -c solo.rb -j solo.json
+RUN chef exec gem install omnibus
+
+# install omnibus software for dependencies
+RUN git clone https://github.com/chef/omnibus-software.git /tmp/omnibus-software
+RUN chef exec gem build /tmp/omnibus-software/*.gemspec
+RUN chef exec gem install omnibus-*.gem
+RUN rm -f *.gem
+
+RUN git config --global user.email "you@example.com"
+RUN git config --global user.name "Your Name"
+
+# prepare for omnibus build
+RUN chef exec gem install bundler
+RUN chmod +x /env/omni.sh
+
+VOLUME ["/project"]
+WORKDIR /project
+
+ENTRYPOINT ["/env/omni.sh"]
