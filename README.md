@@ -8,3 +8,14 @@ Run `./build.sh`. This builds all the container and sets the alias for your mach
 
 - `omnibus-ubuntu` - Ubuntu 14.04
 - `omnibus-centos` - CentOS 7
+
+Once its build, just use it with the normal omnibus commands:
+
+```
+./build
+source ./env.sh'
+git clone git@github.com:chef/inspec.git
+git checkout chris-rock/omnibus
+cd omnibus
+omnibus-deb build inspec
+```
